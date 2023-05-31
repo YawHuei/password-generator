@@ -126,44 +126,34 @@ Local $sAlphaL = EraseCharacter($AlphaL, $spattern)
 Local $sADigits = EraseCharacter($ADigits, $spattern)
 Local $sSpecial = EraseCharacter($Special, $spattern)
 
-if $tAlphaU = 0 Then
-	$tpasswords &= $sAlphaU
-ElseIf $tAlphaU > 0 Then
-	$tvar = GeneratorChar($sAlphaU, $tAlphaU)
+If $tAlphaU > 0 Then
+	$tvar = GeneratorChar($sAlphaU, $tAlphaU, True)
 	$password &= $tvar
-	$tpasswords &= EraseCharacter($sAlphaU, $tvar)
 EndIf
+If $tAlphaU >= 0 Then $tpasswords &= $sAlphaU
 
-If $tAlphaL = 0 Then
-	$tpasswords &= $sAlphaL
-ElseIf $tAlphaL > 0 Then
-	$tvar = GeneratorChar($sAlphaL, $tAlphaL)
+If $tAlphaL > 0 Then
+	$tvar = GeneratorChar($sAlphaL, $tAlphaL, True)
 	$password &= $tvar
-	$tpasswords &= EraseCharacter($sAlphaL, $tvar)
 EndIf
+If $tAlphaL >= 0 Then $tpasswords &= $sAlphaL
 
-If $tADigits = 0 Then
-	$tpasswords &= $sADigits
-ElseIf $tADigits > 0 Then
-	$tvar = GeneratorChar($sADigits, $tADigits)
+If $tADigits > 0 Then
+	$tvar = GeneratorChar($sADigits, $tADigits, True)
 	$password &= $tvar
-	$tpasswords &= EraseCharacter($sADigits, $tvar)
 EndIf
+If $tADigits >= 0 Then $tpasswords &= $sADigits
 
-If $tSpecial = 0 Then
-	$tpasswords &= $sSpecial
-ElseIf $tSpecial > 0 Then
-	$tvar = GeneratorChar($sSpecial, $tSpecial)
+If $tSpecial > 0 Then
+	$tvar = GeneratorChar($sSpecial, $tSpecial, True)
 	$password &= $tvar
-	$tpasswords &= EraseCharacter($sSpecial, $tvar)
 EndIf
-
+If $tSpecial >= 0 Then $tpasswords &= $sSpecial
 
 Local $yt = $MaxChar - StringLen($password)
 $password &= GeneratorChar($tpasswords, $yt)
 
-$yt = StringLen($password)
-Local $Newpassword = GeneratorChar($password, $yt)
+Local $Newpassword = GeneratorChar($password)
 
 MsgBox(4096, "", $Newpassword)
 If $toClip Then ClipPut($Newpassword)
@@ -185,15 +175,19 @@ Func EraseCharacter($password, $spattern)
 EndFunc	;==>EraseCharacter
 
 
-Func GeneratorChar($sString, $iTimes)
-	If $iTimes <= 0 Then Return ""
+Func GeneratorChar(ByRef $sString, $iTimes = 0, $xCase = False)
+	If $iTimes < 0 Then Return SetError(1, 0, "")
+	If $iTimes = 0 Then $iTimes = StringLen($sString)
 	Local $aArray = StringToASCIIArray($sString)
-	hArrayShuffle($aArray)
-	Return StringLeft(StringFromASCIIArray($aArray), $iTimes)
+	Local $tArray = hArrayShuffle($aArray)
+	if @error Then Return SetError(1, 0, "")
+	Local $pwchar = StringFromASCIIArray($tArray, 0, $iTimes - 1)
+	If $xCase Then $sString = StringFromASCIIArray($tArray, $iTimes)
+	Return SetError(0, 0, $pwchar)
 EndFunc	;==>GeneratorChar
 
 
-Func hArrayShuffle(ByRef $aArray, $iStart_Row = 0, $iEnd_Row = 0)
+Func hArrayShuffle($aArray, $iStart_Row = 0, $iEnd_Row = 0)
 	If Not IsArray($aArray) Then Return SetError(1, 0, -1)
 	Local $iDim_1 = UBound($aArray, $UBOUND_ROWS)
 	If $iEnd_Row = 0 Then $iEnd_Row = $iDim_1 - 1
@@ -208,5 +202,5 @@ Func hArrayShuffle(ByRef $aArray, $iStart_Row = 0, $iEnd_Row = 0)
 		$aArray[$i] = $aArray[$iRand]
 		$aArray[$iRand] = $vTmp
 	Next
-	Return 1
+	Return SetError(0, 0, $aArray)
 EndFunc   ;==>hArrayShuffle
