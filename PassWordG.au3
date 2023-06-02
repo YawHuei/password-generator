@@ -151,7 +151,7 @@ EndIf
 If $tSpecial >= 0 Then $tpasswords &= $sSpecial
 
 Local $yt = $MaxChar - StringLen($password)
-$password &= GeneratorChar($tpasswords, $yt)
+If $yt > 0 Then $password &= GeneratorChar($tpasswords, $yt)
 
 Local $Newpassword = GeneratorChar($password)
 
