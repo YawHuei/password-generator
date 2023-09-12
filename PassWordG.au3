@@ -1,6 +1,7 @@
 #NoTrayIcon
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Compile_Both=y
+#AutoIt3Wrapper_UseUpx=y
+#AutoIt3Wrapper_UseX64=n
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <GUIConstantsEx.au3>
 #include <Date.au3>
@@ -9,7 +10,7 @@ Local Const $AlphaU = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", $AlphaL = "abcdefghijklmnopq
 Local Const $ADigits = "0123456789", $Special = "!#$%&'()*+,-./:;<=>?@[\]^_`{|}~"
 Local Const $cNumber = "-1|0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40"
 
-Local $password = "", $tpasswords = "", $toClip = True, $tVar
+Local $password = "", $tpasswords = "", $toClip = True, $tconsecutive = True, $tVar
 
 ; M:20 U:1 L:1 D:1 S:-1 "['()*,./:;=@[\]^`{|}~]4"
 
@@ -18,7 +19,7 @@ Local $Cmdlines = $CmdLineRaw, $iCmd, $tCmds, $tFileSave = ""
 
 
 If $CmdLine[0] = 0 Then
-	Local $m0 = GUICreate("Generate PassWord by Huei", 480, 320)
+	Local $m0 = GUICreate("Generate PassWord by Huei", 520, 380)
 	GUICtrlCreateLabel("Min Number of Characters   ;   -1 = Exclude  , 0 = UnLimited", 10, 15, 400)
 	GUICtrlSetFont(-1, 10, 700)
 	GUICtrlCreateLabel($AlphaU, 80, 40, 280, 20)
@@ -56,17 +57,21 @@ If $CmdLine[0] = 0 Then
 	Local $i1 = GUICtrlCreateButton("Browse", 400, 250, 50)
 	Local $aSaveFile = GUICtrlCreateInput("", 10, 250, 380, 20)
 
-	GUICtrlCreateLabel("PassWord Numbers", 10, 285, 120, 20)
+	GUICtrlCreateLabel("PassWord Numbers", 10, 305, 120, 20)
 	GUICtrlSetFont(-1, 9, 700)
-	Local $n0 = GUICtrlCreateCombo("", 140, 280, 40)
+	Local $n0 = GUICtrlCreateCombo("", 145, 300, 40)
 	GUICtrlSetData(-1, "4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40", "8")
 
-	Local $check = GUICtrlCreateCheckbox(" Save to clipboard", 220, 280, 120, 20)
-	GUICtrlSetFont(-1, 9, 700)
+	Local $check = GUICtrlCreateCheckbox(" Save to clipboard", 220, 300, 150, 20)
+	GUICtrlSetFont(-1, 10, 700)
 	GUICtrlSetState(-1, 1)
 
-	Local $i2 = GUICtrlCreateButton("Run", 380, 280, 50)
+	Local $contcheck = GUICtrlCreateCheckbox("Avoid consecutive letters", 10, 330, 200, 20)
 	GUICtrlSetFont(-1, 10, 700)
+	GUICtrlSetState(-1, 1)
+
+	Local $i2 = GUICtrlCreateButton("Run", 400, 300, 50)
+	GUICtrlSetFont(-1, 11, 700)
 
 	GUISetState(@SW_SHOW)
 
@@ -87,7 +92,7 @@ If $CmdLine[0] = 0 Then
 			$tADigits = GUICtrlRead($n3)
 			$tSpecial = GUICtrlRead($n4)
 			$spattern = GUICtrlRead($aExclude)
-
+			$tconsecutive = GUICtrlRead($contcheck)
 			GUIDelete($m0)
 			ExitLoop
 		EndSelect
@@ -111,6 +116,8 @@ Else
 				$tSpecial = Number(StringTrimLeft($tCmds, 2))
 			Case 'F:'
 				$tFileSave = StringTrimLeft($tCmds, 2)
+			Case 'A:'
+				$tconsecutive = Number(StringTrimLeft($tCmds, 2))
 			Case Else
 				$spattern = $tCmds
 		EndSwitch
@@ -150,16 +157,16 @@ If $tSpecial > 0 Then
 EndIf
 If $tSpecial >= 0 Then $tpasswords &= $sSpecial
 
-Local $yt = $MaxChar - StringLen($password)
+Local $yt = $MaxChar - StringLen($password) + 1
 If $yt > 0 Then $password &= GeneratorChar($tpasswords, $yt)
 
-Local $Newpassword = GeneratorChar($password)
+Local $Newpassword = GeneratorChar($password, 0, False, $tconsecutive)
 
-MsgBox(4096, "", $Newpassword)
-If $toClip Then ClipPut($Newpassword)
+MsgBox(4096, "", $password)
+If $toClip Then ClipPut($password)
 
 If StringIsSpace($tFileSave) Then Exit
-FileWriteLine(FileGetLongName($tFileSave, 1), $Newpassword)
+FileWriteLine(FileGetLongName($tFileSave, 1), $password)
 
 Exit
 ;  === Main End ===
@@ -175,11 +182,24 @@ Func EraseCharacter($password, $spattern)
 EndFunc	;==>EraseCharacter
 
 
-Func GeneratorChar(ByRef $sString, $iTimes = 0, $xCase = False)
+Func GeneratorChar(ByRef $sString, $iTimes = 0, $xCase = False, $aConsecutive = 1)
 	If $iTimes < 0 Then Return SetError(1, 0, "")
 	If $iTimes = 0 Then $iTimes = StringLen($sString)
 	Local $aArray = StringToASCIIArray($sString)
 	Local $tArray = hArrayShuffle($aArray)
+	If $aConsecutive = 1 Then
+		Local $count = 1
+		While True
+			If $tArray[$count - 1] = $tArray[$count] - 1 Then
+				$tArray = hArrayShuffle($aArray)
+				$aArray = $tArray
+				$count = 1
+				ContinueLoop
+			EndIf
+			$count += 1
+			If $count >= UBound($aArray) Then ExitLoop
+		WEnd
+	EndIf
 	if @error Then Return SetError(1, 0, "")
 	Local $pwchar = StringFromASCIIArray($tArray, 0, $iTimes - 1)
 	If $xCase Then $sString = StringFromASCIIArray($tArray, $iTimes)
